@@ -1,58 +1,7 @@
-
 // Uncomment to debug using serial monitor at 115200 baud
 #define DEBUG
 
-// Uncomment the correct target machine to use your C64 keyboard with
-//#define U64
-//#define VICE
-//#define MISTER
-//#define BMC64
-
-
-#include "HID-Project.h"
-
-// RUNSTOP Vice uses KEY_ESC, u64 uses KEY_PAUSE
-// CTRL vice uses KEY_TAB, u64 uses KEY_LEFT_WINDOWS
-// MiSTer uses KEY_LEFT_CTRL as CTRL and C= is KEY_LEFT_ALT
-
-// #if defined(VICE) 
-// #define KEYSTOP KEY_ESC  
-// #define CKEY KEY_TAB
-// #define CTRLKEY KEY_LEFT_CTRL
-// #define LEFTARROW '_'
-// #define UPARROW '~'
-
-// #elif defined(MISTER)
-// #define KEYSTOP KEY_ESC  
-// #define CKEY KEY_LEFT_ALT
-// #define CTRLKEY KEY_LEFT_CTRL
-// #define LEFTARROW '`'
-// #define UPARROW KEY_F9
-
-// #elif defined(U64)
-// #define KEYSTOP KEY_PAUSE
-// #define CKEY KEY_LEFT_WINDOWS
-// #define CTRLKEY KEY_LEFT_CTRL
-// #define LEFTARROW '~'
-// #define UPARROW '|'
-
-// #elif defined(BMC64)
-// #define KEYSTOP KEY_ESC
-// #define CKEY KEY_LEFT_CTRL
-// #define CTRLKEY KEY_TAB
-// #define LEFTARROW '`'
-// #define UPARROW '^'
-
-// #else
-// #define KEYSTOP KEY_ESC
-// #define CKEY KEY_LEFT_WINDOWS
-// #define CTRLKEY KEY_LEFT_CTRL
-// #define LEFTARROW '_'
-// #define UPARROW '~'
-// #endif
-
-
-
+#include <HID-Project.h>
 
 /* =======================================================================
 
@@ -116,18 +65,8 @@ long lastDebounceTime[80];
 int debounceDelay = 100;
 int RowPinMap[8] = {9, 3, 4, 5, 6, 7, 8, 2};
 int ColPinMap[10] = {10, 16, 14, 21, 18, 19, 20, 15, 1, 0};
-char keymap[80] = 
-{
-// 1   2   3   4   5   6   7   8   9  10
-  ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
-  ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
-  ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
-  ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
-  ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
-  ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
-  ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
-  ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
-};
+
+KeyboardKeycode keymap[80];
   
 char printchar;
 
@@ -160,57 +99,62 @@ void bootsetup() {
   Serial.begin(115200);
   #endif
   
-  BootKeyboard.begin();
-  BootKeyboard.releaseAll();
+  Keyboard.begin();
+  Keyboard.releaseAll();
+
+  for (int i = 0; i < 80; i++) {
+    keymap[i] = NULL;
+  }
 
   // TOP ROW
-  keymap[71] = HID_KEYBOARD_LEFTARROW;   // vice uses _, u64 uses ~
-  keymap[70] = '1'; 
-  keymap[73] = '2';
-  keymap[10] = '3';
-  keymap[13] = '4';
-  keymap[20] = '5';
-  keymap[23] = '6';
-  keymap[30] = '7';
-  keymap[33] = '8';
-  keymap[40] = '9';
-  keymap[43] = '0';
-  keymap[50] = '+';
-  keymap[53] = '-';
-  keymap[60] = '\\';
+  keymap[71] = KEY_LEFT_ARROW;
+  keymap[70] = KEY_1; 
+  keymap[73] = KEY_2;
+  keymap[10] = KEY_3;
+  keymap[13] = KEY_4;
+  keymap[20] = KEY_5;
+  keymap[23] = KEY_6;
+  keymap[30] = KEY_7;
+  keymap[33] = KEY_8;
+  keymap[40] = KEY_9;
+  keymap[43] = KEY_0;
+  //keymap[50] = '+';
+  //keymap[53] = '-';
+  keymap[60] = KEY_BACKSLASH;
   keymap[63] = KEY_HOME;
   keymap[0] = KEY_BACKSPACE;
 
 
   // SECOND ROW
   keymap[72] = KEY_LEFT_CTRL;
-  keymap[76] = 'q';
-  keymap[11] = 'w';
-  keymap[16] = 'e';
-  keymap[21] = 'r';
-  keymap[26] = 't';
-  keymap[31] = 'y';
-  keymap[36] = 'u';
-  keymap[41] = 'i';
-  keymap[46] = 'o';
-  keymap[51] = 'p';
-  keymap[56] = '@';
-  keymap[61] = '*';
-  keymap[71] = HID_KEYBOARD_UPARROW;   
+  keymap[76] = KEY_Q;
+  keymap[11] = KEY_W;
+  keymap[16] = KEY_E;
+  keymap[21] = KEY_R;
+  keymap[26] = KEY_T;
+  keymap[31] = KEY_Y;
+  keymap[36] = KEY_U;
+  keymap[41] = KEY_I;
+  keymap[46] = KEY_O;
+  keymap[51] = KEY_P;
+//   keymap[56] = '@';
+//   keymap[61] = '*';
+  keymap[66] = KEY_UP_ARROW;
+//   TODO: RESTORE
 
   // THIRD ROW
 
   keymap[77] = KEY_ESC;
   keymap[17] = KEY_LEFT_SHIFT;
-  keymap[12] = 'a';
-  keymap[15] = 's';
-  keymap[22] = 'd';
-  keymap[25] = 'f';
-  keymap[32] = 'g';
-  keymap[35] = 'h';
-  keymap[42] = 'j';
-  keymap[45] = 'k';
-  keymap[52] = 'l';
+  keymap[12] = KEY_A;
+  keymap[15] = KEY_S;
+  keymap[22] = KEY_D;
+  keymap[25] = KEY_F;
+  keymap[32] = KEY_G;
+  keymap[35] = KEY_H;
+  keymap[42] = KEY_J;
+  keymap[45] = KEY_K;
+  keymap[52] = KEY_L;
   keymap[55] = ':';
   keymap[62] = ';';
   keymap[65] = '=';
@@ -219,17 +163,16 @@ void bootsetup() {
   // BOTTOM ROW
 
   keymap[75] = KEY_LEFT_WINDOWS;
-  keymap[17] = KEY_LEFT_SHIFT;
-  keymap[14] = 'z';
-  keymap[27] = 'x';
-  keymap[24] = 'c';
-  keymap[37] = 'v';
-  keymap[34] = 'b';
-  keymap[47] = 'n';
-  keymap[44] = 'm';
+  keymap[14] = KEY_Z;
+  keymap[27] = KEY_X;
+  keymap[24] = KEY_C;
+  keymap[37] = KEY_V;
+  keymap[34] = KEY_B;
+  keymap[47] = KEY_N;
+  keymap[44] = KEY_M;
   keymap[57] = ',';
   keymap[54] = '.';
-  keymap[67] = '/';
+  keymap[67] = KEY_SLASH;
   keymap[64] = KEY_RIGHT_SHIFT;
   keymap[7] = KEY_DOWN_ARROW;
   keymap[2] = KEY_RIGHT_ARROW;
@@ -283,7 +226,7 @@ void loop() {
       // Is the key currently down and wasn't before?
       if (isKeyDown && !lastKeyState[thisKey]) {
 
-        BootKeyboard.press(keymap[thisKey]);
+        Keyboard.press(keymap[thisKey]);
 
         // Toggle the key state
         lastKeyState[thisKey] = true;
@@ -298,8 +241,8 @@ void loop() {
 
       // The key is NOT down but WAS before
       if (!isKeyDown && lastKeyState[thisKey]) {
-
-        BootKeyboard.release(keymap[thisKey]);
+        
+        Keyboard.release(keymap[thisKey]);
 
         // Toggle the key state
         lastKeyState[thisKey] = false;
