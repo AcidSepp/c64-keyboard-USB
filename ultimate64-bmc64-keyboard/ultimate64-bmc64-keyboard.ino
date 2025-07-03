@@ -3,112 +3,52 @@
 
 #include <HID-Project.h>
 
-/* =======================================================================
-
- Commodore 64 USB HID for Pro Micro by Chris Garrett @makerhacks   
- 
- Inspired by and based on code by DJ Sures (Synthiam.com)          
-
-
- ----------------------
- CONNECTIONS
- ----------------------
-
-     C64   |  Arduino
-    ==================
-       20     2 - SDA
-       19     3 - SCL
-       18     4 - A6
-       17     5
-       16     6 - A7
-       15     7 -
-       14     8 - A8
-       13     9 - A9
-       12     10 - A10
-       11     16 - MOSI
-       10     14 - MISO
-       9      15 - SCLK
-       8      18 - A0
-       7      19 - A1
-       6      20 - A2
-       5      21 - A3
-       4      -N/C-
-       3      1
-       2      -N/C-
-       1      0
-    ==================
-
-    
-
-        ------------------------------------
-        Commodore 64 keyboard matrix layout                                                                
-        ------------------------------------
-                                                                
-        Del      Return   curl/r   F7       F1       F3       F5       curup
-        3        W        A        4        Z        S        E        lSh
-        5        R        D        6        C        F        T        X
-        7        Y        G        8        B        H        U        V
-        9        I        J        0        M        K        O        N
-        +        P        L        –        .        :        @        ,
-        £        *        ;        Home     rshift   =        ↑        /
-        1        ←        Ctrl     2        Space    C=       Q        Stop
-       
-
-*/
-
 #define KEYDELAY 30
+#define KEY_COUNT 80
 
-int  thisKey;
-bool isKeyDown;
-int lastKeyState[80];
-long lastDebounceTime[80];
-int debounceDelay = 100;
-int RowPinMap[8] = {9, 3, 4, 5, 6, 7, 8, 2};
-int ColPinMap[10] = {10, 16, 14, 21, 18, 19, 20, 15, 1, 0};
+#define RIGHT_SHIFT_SCANCODE 64
+#define LEFT_SHIFT_SCANCODE 17
 
-KeyboardKeycode keymap[80];
-  
-char printchar;
+#define DOWN_ARROW_SCANCODE 7
+#define RIGHT_ARROW_SCANCODE 2
 
-void SerialPrintLine(String outstring)
-{
-  #ifdef DEBUG
+int debounceDelay = 5;
+int RowPinMap[8] = { 9, 3, 4, 5, 6, 7, 8, 2 };
+int ColPinMap[10] = { 10, 16, 14, 21, 18, 19, 20, 15, 1, 0 };
+
+bool shifted = false;
+
+int lastKeyState[KEY_COUNT];
+long lastDebounceTime[KEY_COUNT];
+KeyboardKeycode keymap[KEY_COUNT];
+char directKeymap[KEY_COUNT];
+
+void debug(String outstring) {
+#ifdef DEBUG
   Serial.println(outstring);
-  #endif
+#endif
 }
-
-void SerialPrint(String outstring)
-{
-  #ifdef DEBUG
-  Serial.print(outstring);
-  #endif
-}
-
-
-void SerialWrite(char outstring)
-{
-  #ifdef DEBUG
-  Serial.write(outstring);
-  #endif
-}
-
 
 void bootsetup() {
 
-  #ifdef DEBUG
+#ifdef DEBUG
   Serial.begin(115200);
-  #endif
-  
+#endif
+
   Keyboard.begin();
   Keyboard.releaseAll();
 
-  for (int i = 0; i < 80; i++) {
+  for (int i = 0; i < KEY_COUNT; i++) {
     keymap[i] = NULL;
   }
 
+  for (int i = 0; i < KEY_COUNT; i++) {
+    directKeymap[i] = NULL;
+  }
+
   // TOP ROW
-  keymap[71] = KEY_LEFT_ARROW;
-  keymap[70] = KEY_1; 
+  keymap[71] = KEY_TAB;
+  keymap[70] = KEY_1;
   keymap[73] = KEY_2;
   keymap[10] = KEY_3;
   keymap[13] = KEY_4;
@@ -118,8 +58,8 @@ void bootsetup() {
   keymap[33] = KEY_8;
   keymap[40] = KEY_9;
   keymap[43] = KEY_0;
-  //keymap[50] = '+';
-  //keymap[53] = '-';
+  directKeymap[50] = '+';
+  directKeymap[53] = '-';
   keymap[60] = KEY_BACKSLASH;
   keymap[63] = KEY_HOME;
   keymap[0] = KEY_BACKSPACE;
@@ -137,15 +77,15 @@ void bootsetup() {
   keymap[41] = KEY_I;
   keymap[46] = KEY_O;
   keymap[51] = KEY_P;
-//   keymap[56] = '@';
-//   keymap[61] = '*';
-  keymap[66] = KEY_UP_ARROW;
-//   TODO: RESTORE
+  directKeymap[56] = '@';
+  directKeymap[61] = '*';
+  // directKeymap[66] = KEY_UP_ARROW;
+  //   TODO: RESTORE
 
   // THIRD ROW
 
   keymap[77] = KEY_ESC;
-  keymap[17] = KEY_LEFT_SHIFT;
+  keymap[LEFT_SHIFT_SCANCODE] = KEY_LEFT_SHIFT;
   keymap[12] = KEY_A;
   keymap[15] = KEY_S;
   keymap[22] = KEY_D;
@@ -155,9 +95,9 @@ void bootsetup() {
   keymap[42] = KEY_J;
   keymap[45] = KEY_K;
   keymap[52] = KEY_L;
-  keymap[55] = ':';
-  keymap[62] = ';';
-  keymap[65] = '=';
+  directKeymap[55] = ':';
+  directKeymap[62] = ';';
+  directKeymap[65] = '=';
   keymap[1] = KEY_ENTER;
 
   // BOTTOM ROW
@@ -170,12 +110,12 @@ void bootsetup() {
   keymap[34] = KEY_B;
   keymap[47] = KEY_N;
   keymap[44] = KEY_M;
-  keymap[57] = ',';
-  keymap[54] = '.';
+  directKeymap[57] = ',';
+  directKeymap[54] = '.';
   keymap[67] = KEY_SLASH;
-  keymap[64] = KEY_RIGHT_SHIFT;
-  keymap[7] = KEY_DOWN_ARROW;
-  keymap[2] = KEY_RIGHT_ARROW;
+  keymap[RIGHT_SHIFT_SCANCODE] = KEY_RIGHT_SHIFT;
+  // keymap[DOWN_ARROW_SCANCODE] = KEY_DOWN_ARROW;
+  // keymap[RIGHT_ARROW_SCANCODE] = KEY_RIGHT_ARROW;
 
   // SPACE AND F1-F8
 
@@ -184,8 +124,7 @@ void bootsetup() {
   keymap[5] = KEY_F3;
   keymap[6] = KEY_F5;
   keymap[3] = KEY_F7;
-
-}  
+}
 
 
 void setup() {
@@ -194,13 +133,15 @@ void setup() {
   for (int i = 0; i < 80; i++) lastKeyState[i] = false;
   for (int Row = 0; Row < 8; Row++) pinMode(RowPinMap[Row], INPUT_PULLUP);
   for (int Col = 0; Col < 10; Col++) pinMode(ColPinMap[Col], INPUT_PULLUP);
+}
 
+void specialKeyPress() {
+}
+
+void specialKeyRelease() {
 }
 
 void loop() {
-
-  thisKey   = NULL;
-  isKeyDown = NULL;
 
   for (int Row = 0; Row < 8; Row++) {
 
@@ -210,53 +151,86 @@ void loop() {
 
     for (int Col = 0; Col < 10; Col++) {
 
-      thisKey    = Col + (Row * 10);
-      isKeyDown = !digitalRead(ColPinMap[Col]);
+      int thisKey = Col + (Row * 10);
+      bool isKeyDown = !digitalRead(ColPinMap[Col]);
 
       // Non-blocking delay
       if (millis() < lastDebounceTime[thisKey] + debounceDelay) continue;
 
-      // Is the key currently down and was before too?
-      if (isKeyDown && lastKeyState[thisKey]) {
-       
-        // if(shifted()) SerialPrint(" SHIFT ");
-
-      }
-      
       // Is the key currently down and wasn't before?
       if (isKeyDown && !lastKeyState[thisKey]) {
 
-        Keyboard.press(keymap[thisKey]);
+        // This is a "normal" key. The scancode can be passed on directly.
+        if (keymap[thisKey] != NULL) {
+          Keyboard.press(keymap[thisKey]);
+        }
 
-        // Toggle the key state
+        // This is a C64 specific key, we need to map it to a char manually.
+        if (directKeymap[thisKey] != NULL) {
+          Keyboard.press(directKeymap[thisKey]);
+        }
+
+        if (thisKey == LEFT_SHIFT_SCANCODE || thisKey == RIGHT_SHIFT_SCANCODE) {
+          shifted = true;
+        }
+
+        if (thisKey == DOWN_ARROW_SCANCODE) {
+          if (shifted) {
+            Keyboard.press(KEY_UP_ARROW);
+            debug("Press UP");
+          } else {
+            Keyboard.press(KEY_DOWN_ARROW);
+            debug("Press DOWN");
+          }
+        }
+        if (thisKey == RIGHT_ARROW_SCANCODE) {
+          if (shifted) {
+            Keyboard.press(KEY_LEFT_ARROW);
+            debug("Press LEFT");
+          } else {
+            Keyboard.press(KEY_RIGHT_ARROW);
+            debug("Press RIGHT");
+          }
+        }
+
         lastKeyState[thisKey] = true;
-
-        SerialPrint("Press: ");
-        SerialPrint(String(thisKey));
-        SerialPrint("('");
-        SerialWrite(keymap[thisKey]);               
-        SerialPrint("')");
-        SerialPrint("\n\r");
+        debug("Press: " + String(thisKey));
       }
 
       // The key is NOT down but WAS before
       if (!isKeyDown && lastKeyState[thisKey]) {
-        
-        Keyboard.release(keymap[thisKey]);
 
-        // Toggle the key state
+        // This is a "normal" key. The scancode can be passed on directly.
+        if (keymap[thisKey] != NULL) {
+          Keyboard.release(keymap[thisKey]);
+        }
+
+        // This is a C64 specific key, we need to map it to a char manually.
+        if (directKeymap[thisKey] != NULL) {
+          Keyboard.release(directKeymap[thisKey]);
+        }
+
+        if (thisKey == LEFT_SHIFT_SCANCODE || thisKey == RIGHT_SHIFT_SCANCODE) {
+          shifted = false;
+        }
+
+        if (thisKey == DOWN_ARROW_SCANCODE) {
+          Keyboard.release(KEY_UP_ARROW);
+          Keyboard.release(KEY_DOWN_ARROW);
+        }
+
+        if (thisKey == RIGHT_ARROW_SCANCODE) {
+          Keyboard.release(KEY_RIGHT_ARROW);
+          Keyboard.release(KEY_LEFT_ARROW);
+        }
+
         lastKeyState[thisKey] = false;
-
-        SerialPrint("Release: ");
-        SerialPrint(String(thisKey));
-        SerialPrint("('");
-        SerialWrite(keymap[thisKey]);               
-        SerialPrint("')");
-        SerialPrint("\n\r");
+        debug("Release: " + String(thisKey));
       }
+
+      lastDebounceTime[thisKey] = millis();
     }
 
-    lastDebounceTime[thisKey] = millis();
     digitalWrite(RowPin, HIGH);
     delay(1);
     pinMode(RowPin, INPUT_PULLUP);
