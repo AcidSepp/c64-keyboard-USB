@@ -38,10 +38,10 @@ int ColPinMap[10] = { 10, 16, 14, 21, 18, 19, 20, 15, 1, 0 };
 
 bool shifted = false;
 
-int lastKeyState[KEY_COUNT];<
+int lastKeyState[KEY_COUNT];
 long lastDebounceTime[KEY_COUNT];
-char directKeymap[KEY_COUNT];
-char directKeymapShifted[KEY_COUNT];
+char keymap[KEY_COUNT];
+char keymapShifted[KEY_COUNT];
 
 void debug(String outstring) {
 #ifdef DEBUG
@@ -59,105 +59,109 @@ void bootsetup() {
   Keyboard.releaseAll();
 
   for (int i = 0; i < KEY_COUNT; i++) {
-    directKeymap[i] = NULL;
-    directKeymapShifted[i] = NULL;
+    keymap[i] = NULL;
+    keymapShifted[i] = NULL;
   }
 
   // TOP ROW
-  directKeymap[70] = '1';
-  directKeymapShifted[70] = '!';
-  directKeymap[73] = '2';
-  directKeymapShifted[73] = '"';
-  directKeymap[10] = '3';
-  directKeymapShifted[10] = '#';
-  directKeymap[13] = '4';
-  directKeymapShifted[13] = '$';
-  directKeymap[20] = '5';
-  directKeymapShifted[20] = '%';
-  directKeymap[23] = '6';
-  directKeymapShifted[23] = '&';
-  directKeymap[30] = '7';
-  directKeymapShifted[30] = '\'';
-  directKeymap[33] = '8';
-  directKeymapShifted[33] = '(';
-  directKeymap[40] = '9';
-  directKeymapShifted[40] = ')';
-  directKeymap[43] = '0';
-  directKeymapShifted[43] = '0';
+  keymap[70] = '1';
+  keymapShifted[70] = '!';
+  keymap[73] = '2';
+  keymapShifted[73] = '"';
+  keymap[10] = '3';
+  keymapShifted[10] = '#';
+  keymap[13] = '4';
+  keymapShifted[13] = '$';
+  keymap[20] = '5';
+  keymapShifted[20] = '%';
+  keymap[23] = '6';
+  keymapShifted[23] = '&';
+  keymap[30] = '7';
+  keymapShifted[30] = '\'';
+  keymap[33] = '8';
+  keymapShifted[33] = '(';
+  keymap[40] = '9';
+  keymapShifted[40] = ')';
+  keymap[43] = '0';
+  keymapShifted[43] = '0';
+  keymap[50] = '+';
+  keymapShifted[50] = '+';
+  keymap[53] = '-';
+  keymapShifted[53] = '-';
+  keymap[60] = '~';
+  keymapShifted[60] = '~';
 
 
   // SECOND ROW
-  directKeymap[76] = 'q';
-  directKeymapShifted[76] = 'Q';
-  directKeymap[11] = 'w';
-  directKeymapShifted[11] = 'W';
-  directKeymap[16] = 'e';
-  directKeymapShifted[16] = 'E';
-  directKeymap[21] = 'r';
-  directKeymapShifted[21] = 'R';
-  directKeymap[26] = 't';
-  directKeymapShifted[26] = 'T';
-  directKeymap[31] = 'y';
-  directKeymapShifted[31] = 'Y';
-  directKeymap[36] = 'u';
-  directKeymapShifted[36] = 'U';
-  directKeymap[41] = 'i';
-  directKeymapShifted[41] = 'I';
-  directKeymap[46] = 'o';
-  directKeymapShifted[46] = 'O';
-  directKeymap[51] = 'p';
-  directKeymapShifted[51] = 'P';
-  directKeymap[56] = '@';
-  directKeymap[61] = '*';
-  // directKeymap[66] = KEY_UP_ARROW;
-  //   TODO: RESTORE
+  keymap[76] = 'q';
+  keymapShifted[76] = 'Q';
+  keymap[11] = 'w';
+  keymapShifted[11] = 'W';
+  keymap[16] = 'e';
+  keymapShifted[16] = 'E';
+  keymap[21] = 'r';
+  keymapShifted[21] = 'R';
+  keymap[26] = 't';
+  keymapShifted[26] = 'T';
+  keymap[31] = 'y';
+  keymapShifted[31] = 'Y';
+  keymap[36] = 'u';
+  keymapShifted[36] = 'U';
+  keymap[41] = 'i';
+  keymapShifted[41] = 'I';
+  keymap[46] = 'o';
+  keymapShifted[46] = 'O';
+  keymap[51] = 'p';
+  keymapShifted[51] = 'P';
+  keymap[56] = '@';
+  keymap[61] = '*';
 
   // THIRD ROW
-  directKeymap[12] = 'a';
-  directKeymapShifted[12] = 'A';
-  directKeymap[15] = 's';
-  directKeymapShifted[15] = 'S';
-  directKeymap[22] = 'd';
-  directKeymapShifted[22] = 'D';
-  directKeymap[25] = 'f';
-  directKeymapShifted[25] = 'F';
-  directKeymap[32] = 'g';
-  directKeymapShifted[32] = 'G';
-  directKeymap[35] = 'h';
-  directKeymapShifted[35] = 'H';
-  directKeymap[42] = 'j';
-  directKeymapShifted[42] = 'J';
-  directKeymap[45] = 'k';
-  directKeymapShifted[45] = 'K';
-  directKeymap[52] = 'l';
-  directKeymapShifted[52] = 'L';
-  directKeymap[55] = ':';
-  directKeymapShifted[55] = '(';
-  directKeymap[62] = ';';
-  directKeymapShifted[62] = ')';
-  directKeymap[65] = '=';
+  keymap[12] = 'a';
+  keymapShifted[12] = 'A';
+  keymap[15] = 's';
+  keymapShifted[15] = 'S';
+  keymap[22] = 'd';
+  keymapShifted[22] = 'D';
+  keymap[25] = 'f';
+  keymapShifted[25] = 'F';
+  keymap[32] = 'g';
+  keymapShifted[32] = 'G';
+  keymap[35] = 'h';
+  keymapShifted[35] = 'H';
+  keymap[42] = 'j';
+  keymapShifted[42] = 'J';
+  keymap[45] = 'k';
+  keymapShifted[45] = 'K';
+  keymap[52] = 'l';
+  keymapShifted[52] = 'L';
+  keymap[55] = ':';
+  keymapShifted[55] = '(';
+  keymap[62] = ';';
+  keymapShifted[62] = ')';
+  keymap[65] = '=';
 
   // BOTTOM ROW
-  directKeymap[14] = 'z';
-  directKeymapShifted[14] = 'Z';
-  directKeymap[27] = 'x';
-  directKeymapShifted[27] = 'X';
-  directKeymap[24] = 'c';
-  directKeymapShifted[24] = 'C';
-  directKeymap[37] = 'v';
-  directKeymapShifted[37] = 'V';
-  directKeymap[34] = 'b';
-  directKeymapShifted[34] = 'B';
-  directKeymap[47] = 'n';
-  directKeymapShifted[47] = 'N';
-  directKeymap[44] = 'm';
-  directKeymapShifted[44] = 'M';
-  directKeymap[57] = ',';
-  directKeymapShifted[57] = '<';
-  directKeymap[54] = '.';
-  directKeymapShifted[54] = '>';
-  directKeymap[67] = '/';
-  directKeymapShifted[67] = '?';
+  keymap[14] = 'z';
+  keymapShifted[14] = 'Z';
+  keymap[27] = 'x';
+  keymapShifted[27] = 'X';
+  keymap[24] = 'c';
+  keymapShifted[24] = 'C';
+  keymap[37] = 'v';
+  keymapShifted[37] = 'V';
+  keymap[34] = 'b';
+  keymapShifted[34] = 'B';
+  keymap[47] = 'n';
+  keymapShifted[47] = 'N';
+  keymap[44] = 'm';
+  keymapShifted[44] = 'M';
+  keymap[57] = ',';
+  keymapShifted[57] = '<';
+  keymap[54] = '.';
+  keymapShifted[54] = '>';
+  keymap[67] = '/';
+  keymapShifted[67] = '?';
 }
 
 
@@ -196,12 +200,12 @@ void loop() {
 
         // This is a C64 specific key, we need to map it to a char manually.
         if (shifted) {
-          if (directKeymapShifted[thisKey] != NULL) {
-            Keyboard.press(directKeymapShifted[thisKey]);
+          if (keymapShifted[thisKey] != NULL) {
+            Keyboard.press(keymapShifted[thisKey]);
           }
         } else {
-          if (directKeymap[thisKey] != NULL) {
-            Keyboard.press(directKeymap[thisKey]);
+          if (keymap[thisKey] != NULL) {
+            Keyboard.press(keymap[thisKey]);
           }
         }
 
@@ -312,9 +316,9 @@ void loop() {
       if (!isKeyDown && lastKeyState[thisKey]) {
 
         // This is a C64 specific key, we need to map it to a char manually.
-        if (directKeymap[thisKey] != NULL) {
-          Keyboard.release(directKeymap[thisKey]);
-          Keyboard.release(directKeymapShifted[thisKey]);
+        if (keymap[thisKey] != NULL) {
+          Keyboard.release(keymap[thisKey]);
+          Keyboard.release(keymapShifted[thisKey]);
         }
 
         if (thisKey == LEFT_SHIFT_SCANCODE || thisKey == RIGHT_SHIFT_SCANCODE) {
